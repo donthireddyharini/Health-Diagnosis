@@ -1,0 +1,94 @@
+======================================================================
+DIRECT MODEL ACCURACY TEST
+======================================================================
+
+❌ WRONG
+  Image: ISIC_0000139.jpg
+  Expected: MELANOMA
+  Predicted: PIGMENTED BENIGN KERATOSIS
+  Confidence: 34.54%
+  Top 3:
+      1. Pigmented Benign Keratosis: 34.54%
+      2. Squamous Cell Carcinoma: 21.91%
+      3. Basal Cell Carcinoma: 19.89%
+
+✅ CORRECT
+  Image: ISIC_0000141.jpg
+  Expected: MELANOMA
+  Predicted: MELANOMA
+  Confidence: 48.00%
+  Top 3:
+    → 1. Melanoma: 48.00%
+      2. Nevus: 39.65%
+      3. Seborrheic Keratosis: 6.55%
+
+❌ WRONG
+  Image: ISIC_0000142.jpg
+  Expected: MELANOMA
+  Predicted: NEVUS
+  Confidence: 33.78%
+  Top 3:
+      1. Nevus: 33.78%
+    → 2. Melanoma: 28.36%
+      3. Squamous Cell Carcinoma: 13.40%
+
+❌ WRONG
+  Image: ISIC_0024504.jpg
+  Expected: BASAL CELL CARCINOMA
+  Predicted: PIGMENTED BENIGN KERATOSIS
+  Confidence: 29.76%
+  Top 3:
+      1. Pigmented Benign Keratosis: 29.76%
+    → 2. Basal Cell Carcinoma: 23.08%
+      3. Squamous Cell Carcinoma: 19.53%
+
+❌ WRONG
+  Image: ISIC_0024515.jpg
+  Expected: BASAL CELL CARCINOMA
+  Predicted: SQUAMOUS CELL CARCINOMA
+  Confidence: 28.34%
+  Top 3:
+      1. Squamous Cell Carcinoma: 28.34%
+      2. Pigmented Benign Keratosis: 18.33%
+    → 3. Basal Cell Carcinoma: 18.25%
+
+✅ CORRECT
+  Image: ISIC_0000019.jpg
+  Expected: NEVUS
+  Predicted: NEVUS
+  Confidence: 44.08%
+  Top 3:
+    → 1. Nevus: 44.08%
+      2. Pigmented Benign Keratosis: 34.46%
+      3. Melanoma: 16.54%
+
+❌ WRONG
+  Image: ISIC_0000020.jpg
+  Expected: NEVUS
+  Predicted: PIGMENTED BENIGN KERATOSIS
+  Confidence: 66.47%
+  Top 3:
+      1. Pigmented Benign Keratosis: 66.47%
+    → 2. Nevus: 16.31%
+      3. Squamous Cell Carcinoma: 7.90%
+
+❌ WRONG
+  Image: ISIC_0025594.jpg
+  Expected: DERMATOFIBROMA
+  Predicted: BASAL CELL CARCINOMA
+  Confidence: 38.80%
+  Top 3:
+      1. Basal Cell Carcinoma: 38.80%
+      2. Squamous Cell Carcinoma: 13.77%
+      3. Pigmented Benign Keratosis: 11.17%
+
+======================================================================
+FINAL RESULTS
+======================================================================
+Total Tests: 8
+Correct: 2
+Wrong: 6
+Accuracy: 25.00%
+
+❌ Model needs improvement
+======================================================================
