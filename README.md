@@ -42,6 +42,48 @@ A comprehensive AI-powered web application for skin disease detection and classi
 - **Routing**: React Router v6
 - **HTTP Client**: Axios
 
+  # 📸 Application Screenshots
+
+## 🏠 Home Page
+
+The landing page introduces the platform and allows users to start AI-powered skin disease analysis.
+
+![Home Page](Home-page.png)
+
+---
+
+## 🔍 AI Disease Detection & Prediction
+
+Upload a skin image and receive an instant prediction with confidence score and disease information.
+
+![Prediction Result](prediction-result.png)
+
+---
+
+## 📊 User Dashboard
+
+The dashboard provides an overview of analyses, consultations, health status, and quick actions.
+
+![Dashboard](dashboard.png)
+
+---
+
+## 📜 Analysis History
+
+Users can view and manage all previous skin disease analyses along with confidence scores.
+
+![History](history.png)
+
+---
+
+## 👨‍⚕️ Doctor Consultation
+
+Patients can request consultations and communicate with healthcare professionals.
+
+![Consultation](consultation.png)
+
+---
+
 ## 📋 Prerequisites
 
 - Python 3.8 or higher
