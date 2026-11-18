@@ -978,7 +978,7 @@ function BoneFracture() {
         {/* ── TAB 2: OVERVIEW & NETWORK ARCHITECTURE ── */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'overview' && (
-          <div className="space-y-5 animate-fade-in max-w-5xl mx-auto">
+          <div className="space-y-5 animate-fade-in w-full">
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center shrink-0">
@@ -1073,7 +1073,7 @@ function BoneFracture() {
         {/* ── TAB 3: MODELS & METHODOLOGY ── */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'models' && (
-          <div className="space-y-5 animate-fade-in max-w-5xl mx-auto">
+          <div className="space-y-5 animate-fade-in w-full">
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xs space-y-5">
               <div>
                 <h2 className="text-xl font-extrabold text-slate-900">Models & Methodology</h2>
@@ -1128,7 +1128,7 @@ function BoneFracture() {
         {/* ── TAB 4: CLINICAL ORTHOPEDIC RADIOLOGY REPORT ── */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'report' && (
-          <div className="space-y-5 animate-fade-in max-w-4xl mx-auto">
+          <div className="space-y-5 animate-fade-in w-full">
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
               {/* Header */}
               <div className="flex items-start justify-between pb-4 border-b border-slate-200">
