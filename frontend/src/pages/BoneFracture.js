@@ -406,10 +406,10 @@ function BoneFracture() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12 w-full">
       {/* ── Subheader / Navigation ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-16 z-40 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="bg-white border-b border-slate-200 sticky top-16 z-40 shadow-xs w-full">
+        <div className="w-full px-3 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between py-2.5 gap-2.5">
             {/* Title & Badge */}
             <div className="flex items-center gap-2.5">
@@ -488,16 +488,16 @@ function BoneFracture() {
       </header>
 
       {/* ── Main Workspace ── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
+      <main className="w-full px-3 sm:px-6 lg:px-8 pt-4 pb-12">
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* ── TAB 1: FRACTURE DETECTION (COMPACT & COMPLETE FIT) ── */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'detect' && (
-          <div className="flex flex-col lg:flex-row gap-5 items-start animate-fade-in">
+          <div className="flex flex-col lg:flex-row gap-4 items-start w-full animate-fade-in">
             {/* ══════════════════════════════════════════════════════════════════ */}
             {/* ── LEFT SIDEBAR: Benchmark Radiographs & Inference Controls ─── */}
             {/* ══════════════════════════════════════════════════════════════════ */}
-            <div className="w-full lg:w-[350px] xl:w-[370px] shrink-0 space-y-4">
+            <div className="w-full lg:w-[320px] xl:w-[350px] shrink-0 space-y-3.5">
               {/* 1. Benchmark Radiographs Presets (Vertical Column) */}
               <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -771,7 +771,7 @@ function BoneFracture() {
                       <span className="text-[10px] text-slate-400 font-mono">Original Scan</span>
                     </div>
 
-                    <div className="h-72 sm:h-80 md:h-96 rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
+                    <div className="h-80 sm:h-96 md:h-[420px] lg:h-[460px] rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
                       {previewUrl ? (
                         <img
                           src={previewUrl}
@@ -805,7 +805,7 @@ function BoneFracture() {
                       </span>
                     </div>
 
-                    <div className="h-72 sm:h-80 md:h-96 rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
+                    <div className="h-80 sm:h-96 md:h-[420px] lg:h-[460px] rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
                       {result?.detected_image ? (
                         <img
                           src={result.detected_image}
