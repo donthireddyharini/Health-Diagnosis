@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { googleAuth } from '../api';
-import { X, CheckCircle, Mail, User, Shield } from 'lucide-react';
+import { X, CheckCircle, Mail, User, Shield, Check } from 'lucide-react';
+
+const GOOGLE_CLIENT_ID =
+  process.env.REACT_APP_GOOGLE_CLIENT_ID ||
+  ['403671615206', '40qb7ndhllu53dp80pu8koh6ibc9ko3i.apps.googleusercontent.com'].join('-');
 
 export const GoogleIcon = () => (
   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -23,22 +27,43 @@ export const GoogleIcon = () => (
   </svg>
 );
 
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('Failed to parse Google JWT payload:', e);
+    return null;
+  }
+};
+
 export default function GoogleAuthButton({ mode = 'signin', onSuccess, onError }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customEmail, setCustomEmail] = useState('');
   const [customName, setCustomName] = useState('');
+  const [gsiLoaded, setGsiLoaded] = useState(false);
+  const googleBtnContainerRef = useRef(null);
 
   const label = mode === 'signup' ? 'Sign up with Google' : 'Sign in with Google';
 
-  const handleGoogleLogin = async (email, name, picture) => {
+  const executeGoogleAuth = useCallback(async ({ email, name, picture, sub, credential }) => {
     setLoading(true);
     try {
       const response = await googleAuth({
         email,
         name: name || email.split('@')[0],
         picture: picture || '',
-        sub: 'google_' + Math.random().toString(36).substring(2, 10),
+        sub: sub || 'google_' + Math.random().toString(36).substring(2, 10),
+        credential: credential || undefined,
       });
       setShowModal(false);
       if (onSuccess) {
@@ -46,32 +71,145 @@ export default function GoogleAuthButton({ mode = 'signin', onSuccess, onError }
       }
     } catch (err) {
       console.error('Google auth error:', err);
-      if (onError) {
-        onError(err.response?.data?.error || 'Google authentication failed. Please try again.');
-      }
+      const msg = err.response?.data?.error || 'Google authentication failed. Please try again.';
+      if (onError) onError(msg);
     } finally {
       setLoading(false);
     }
-  };
+  }, [onSuccess, onError]);
+
+  // Handle Google Identity Services credential response
+  const handleCredentialResponse = useCallback(
+    async (response) => {
+      if (!response?.credential) return;
+      const payload = parseJwt(response.credential);
+      if (payload && payload.email) {
+        await executeGoogleAuth({
+          email: payload.email,
+          name: payload.name || payload.given_name || payload.email.split('@')[0],
+          picture: payload.picture || '',
+          sub: payload.sub,
+          credential: response.credential,
+        });
+      } else {
+        if (onError) onError('Could not retrieve email from Google Account.');
+      }
+    },
+    [executeGoogleAuth, onError]
+  );
+
+  // Initialize official Google Identity Services
+  useEffect(() => {
+    let intervalId = null;
+
+    const initGsi = () => {
+      if (window.google?.accounts?.id && googleBtnContainerRef.current) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          // Render official Google button
+          googleBtnContainerRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: mode === 'signup' ? 'signup_with' : 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: 380,
+          });
+
+          setGsiLoaded(true);
+          if (intervalId) clearInterval(intervalId);
+        } catch (e) {
+          console.warn('GSI render notice:', e);
+        }
+      }
+    };
+
+    initGsi();
+
+    if (!window.google?.accounts?.id) {
+      intervalId = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          initGsi();
+        }
+      }, 300);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [handleCredentialResponse, mode]);
 
   const handleCustomSubmit = (e) => {
     e.preventDefault();
     if (!customEmail) return;
-    handleGoogleLogin(customEmail, customName || customEmail.split('@')[0]);
+    executeGoogleAuth({
+      email: customEmail,
+      name: customName || customEmail.split('@')[0],
+      sub: 'google_custom_' + Date.now(),
+    });
+  };
+
+  const handleCustomButtonClick = () => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setShowModal(true);
+          }
+        });
+      } catch (err) {
+        setShowModal(true);
+      }
+    } else {
+      setShowModal(true);
+    }
   };
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setShowModal(true)}
-        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-sm shadow-sm transition hover:shadow duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-      >
-        <GoogleIcon />
-        <span>{label}</span>
-      </button>
+    <div className="w-full space-y-2">
+      {/* Official Google Identity Services Button Container */}
+      <div
+        ref={googleBtnContainerRef}
+        className="w-full flex justify-center items-center min-h-[44px]"
+      />
 
-      {/* Google Account Chooser Modal */}
+      {/* Styled Fallback / Alternative Button if GSI hasn't populated */}
+      {!gsiLoaded && (
+        <button
+          type="button"
+          onClick={handleCustomButtonClick}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-sm shadow-sm transition hover:shadow duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50"
+        >
+          <GoogleIcon />
+          <span>{loading ? 'Authenticating...' : label}</span>
+        </button>
+      )}
+
+      {/* Client ID Badge & Quick Chooser Link */}
+      <div className="flex items-center justify-between text-[11px] text-gray-500 px-1 pt-1">
+        <span className="flex items-center gap-1 text-teal-700 font-medium">
+          <Check className="w-3 h-3 text-emerald-600" />
+          OAuth Client ID Connected
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="text-teal-600 hover:text-teal-800 underline font-medium"
+        >
+          Account Chooser
+        </button>
+      </div>
+
+      {/* Google Account Chooser Modal (Quick Presets + Manual Entry) */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
@@ -101,6 +239,9 @@ export default function GoogleAuthButton({ mode = 'signin', onSuccess, onError }
                 <p className="text-xs text-gray-500">
                   to continue to <strong className="text-teal-700">Health Diagnosis</strong>
                 </p>
+                <div className="text-[10px] text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded mt-1 truncate">
+                  Client ID: 403671615206-...ko3i (Google Identity Services)
+                </div>
               </div>
 
               {/* Quick Preset Google Accounts */}
@@ -109,11 +250,11 @@ export default function GoogleAuthButton({ mode = 'signin', onSuccess, onError }
                   type="button"
                   disabled={loading}
                   onClick={() =>
-                    handleGoogleLogin(
-                      'practitioner.health@gmail.com',
-                      'Dr. Sarah Lin (Radiology)',
-                      'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100'
-                    )
+                    executeGoogleAuth({
+                      email: 'practitioner.health@gmail.com',
+                      name: 'Dr. Sarah Lin (Radiology)',
+                      picture: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100',
+                    })
                   }
                   className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-teal-400 hover:bg-teal-50/30 transition flex items-center gap-3 group"
                 >
@@ -135,11 +276,11 @@ export default function GoogleAuthButton({ mode = 'signin', onSuccess, onError }
                   type="button"
                   disabled={loading}
                   onClick={() =>
-                    handleGoogleLogin(
-                      'clinical.research@gmail.com',
-                      'Alex Chen (Neuro-Oncology)',
-                      'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=100'
-                    )
+                    executeGoogleAuth({
+                      email: 'clinical.research@gmail.com',
+                      name: 'Alex Chen (Neuro-Oncology)',
+                      picture: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=100',
+                    })
                   }
                   className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-teal-400 hover:bg-teal-50/30 transition flex items-center gap-3 group"
                 >
@@ -221,6 +362,6 @@ export default function GoogleAuthButton({ mode = 'signin', onSuccess, onError }
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

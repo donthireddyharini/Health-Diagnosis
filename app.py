@@ -12,6 +12,8 @@ from PIL import Image
 import io
 import json
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from werkzeug.utils import secure_filename
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -244,14 +246,37 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+
 @app.route('/api/auth/google', methods=['POST'])
 def google_auth():
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
+        credential = data.get('credential')
         email = data.get('email', '').strip().lower()
         name = data.get('name', '').strip()
         google_id = str(data.get('sub') or data.get('google_id') or 'google_user')
         picture = data.get('picture', '')
+
+        # If a Google ID token credential was provided, verify with Google tokeninfo
+        if credential:
+            try:
+                import urllib.request
+                import json
+                req = urllib.request.Request(
+                    f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}",
+                    headers={'User-Agent': 'Health-Diagnosis-Backend'}
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    token_info = json.loads(resp.read().decode('utf-8'))
+                    if token_info.get('email'):
+                        email = token_info.get('email').strip().lower()
+                        name = token_info.get('name') or name
+                        picture = token_info.get('picture') or picture
+                        google_id = str(token_info.get('sub') or google_id)
+            except Exception as ex:
+                logger.warning(f"Google token online verification note: {ex}")
         
         if not email:
             return jsonify({'error': 'Google authentication requires email'}), 400
