@@ -266,25 +266,32 @@ function BoneFracture() {
     loadPresetBlob(BENCHMARK_CASES[0]);
   }, []);
 
-  const loadPresetBlob = async (testCase) => {
+  const loadPresetBlob = async (testCase, modelToUse = selectedModel, threshold = confThreshold) => {
     setSelectedCase(testCase);
     setIsCustomUpload(false);
-    setResult(null);
     setError('');
     setPatientName(testCase.patientName);
     setPatientAge(testCase.age);
     setModality(testCase.modality);
     setClinicalNotes(testCase.notes);
     setPreviewUrl(testCase.file);
+    setLoading(true);
 
     try {
       const response = await fetch(testCase.file);
       const blob = await response.blob();
       const file = new File([blob], `${testCase.id}_fracture.jpg`, { type: 'image/jpeg' });
       setSelectedFile(file);
+      // Pre-compute computer vision inference instantly so the UI renders completely with zero gap
+      const clientResult = await generateClientSideInference(file, testCase, modelToUse, threshold);
+      setResult(clientResult);
     } catch (err) {
       console.warn('Preset blob fetch fallback:', err);
       setSelectedFile(testCase.file);
+      const clientResult = await generateClientSideInference(testCase.file, testCase, modelToUse, threshold);
+      setResult(clientResult);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -295,22 +302,57 @@ function BoneFracture() {
     setSelectedCase(null);
     setIsCustomUpload(true);
     setSelectedFile(file);
-    setResult(null);
     setError('');
     setPatientName('Custom Patient');
     setPatientAge(35);
     setModality('Digital Radiograph');
     setClinicalNotes('Uploaded custom radiograph scan for computer vision fracture localization.');
+    setLoading(true);
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       setPreviewUrl(reader.result);
+      try {
+        const clientResult = await generateClientSideInference(file, null, selectedModel, confThreshold);
+        setResult(clientResult);
+      } catch (err) {
+        console.warn('Custom upload instant inference error:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     reader.readAsDataURL(file);
   };
 
+  const handleModelChange = async (newModel) => {
+    setSelectedModel(newModel);
+    if (selectedFile || previewUrl) {
+      setLoading(true);
+      try {
+        const clientResult = await generateClientSideInference(selectedFile || previewUrl, selectedCase, newModel, confThreshold);
+        setResult(clientResult);
+      } catch (err) {
+        console.warn('Model change inference error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleThresholdChange = async (newThresh) => {
+    setConfThreshold(newThresh);
+    if (selectedFile || previewUrl) {
+      try {
+        const clientResult = await generateClientSideInference(selectedFile || previewUrl, selectedCase, selectedModel, newThresh);
+        setResult(clientResult);
+      } catch (err) {
+        console.warn('Threshold change inference error:', err);
+      }
+    }
+  };
+
   const handleExecuteInference = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile && !previewUrl) return;
     setLoading(true);
     setError('');
 
@@ -451,30 +493,109 @@ function BoneFracture() {
         {/* ── TAB 1: FRACTURE DETECTION (COMPACT & COMPLETE FIT) ── */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'detect' && (
-          <div className="space-y-4 animate-fade-in">
-            {/* ── 1. Top Controls Bar: Settings & Presets ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              {/* Left Box (Col 5): Model Selector & Threshold Slider */}
-              <div className="lg:col-span-5 bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+          <div className="flex flex-col lg:flex-row gap-5 items-start animate-fade-in">
+            {/* ══════════════════════════════════════════════════════════════════ */}
+            {/* ── LEFT SIDEBAR: Benchmark Radiographs & Inference Controls ─── */}
+            {/* ══════════════════════════════════════════════════════════════════ */}
+            <div className="w-full lg:w-[350px] xl:w-[370px] shrink-0 space-y-4">
+              {/* 1. Benchmark Radiographs Presets (Vertical Column) */}
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sliders className="w-4 h-4 text-slate-700" />
-                    <span>Step 1 & 2: Inference Settings</span>
-                  </h2>
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Model Ready
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Benchmark Radiographs
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
+                    7 Presets
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                {/* Upload Custom Radiograph Button */}
+                <label className="cursor-pointer w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center justify-center gap-2 border border-slate-800 shadow-xs group">
+                  <Upload className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>Upload Custom Radiograph</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCustomUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Vertical List of 7 Benchmark Cases */}
+                <div className="space-y-1.5 max-h-[440px] overflow-y-auto pr-0.5">
+                  {BENCHMARK_CASES.map((item) => {
+                    const isSelected = selectedCase?.id === item.id && !isCustomUpload;
+                    const isFracture = item.expectedClass !== 'normal';
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => loadPresetBlob(item)}
+                        className={`w-full p-2 rounded-xl text-left border transition flex items-center gap-2.5 group ${
+                          isSelected
+                            ? 'border-slate-900 bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
+                            : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white text-slate-800'
+                        }`}
+                      >
+                        <div className="w-11 h-11 rounded-lg bg-black overflow-hidden border border-slate-300/80 shrink-0 relative">
+                          <img
+                            src={item.file}
+                            alt={item.label}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                              {item.label.split('—')[1]?.trim() || item.label}
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
+                              isSelected
+                                ? (isFracture ? 'bg-amber-400 text-black' : 'bg-emerald-400 text-black')
+                                : (isFracture ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')
+                            }`}>
+                              {isFracture ? 'FRACTURE' : 'NORMAL'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] mt-0.5">
+                            <span className={`truncate ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+                              {item.region}
+                            </span>
+                            <span className={`font-mono ${isSelected ? 'text-amber-300' : 'text-slate-400'}`}>
+                              {item.age}y
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Inference Architecture & Threshold Settings */}
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4 text-slate-700" />
+                    <span>Inference Architecture</span>
+                  </h2>
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Ready
+                  </span>
+                </div>
+
+                <div className="space-y-3">
                   {/* Model Dropdown */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Architecture
+                      CV Model Selection
                     </label>
                     <select
                       value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
+                      onChange={(e) => handleModelChange(e.target.value)}
                       className="w-full p-2 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-800 transition"
                     >
                       <option value="YoloV8">YOLOv8 Nano (Ultralytics Real-Time CV)</option>
@@ -486,8 +607,10 @@ function BoneFracture() {
                   {/* Threshold Slider */}
                   <div>
                     <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
-                      <span>Threshold</span>
-                      <span className="font-mono text-amber-700 font-bold">{confThreshold.toFixed(2)}</span>
+                      <span>Confidence Threshold</span>
+                      <span className="font-mono text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        {confThreshold.toFixed(2)}
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -495,8 +618,8 @@ function BoneFracture() {
                       max="1.00"
                       step="0.01"
                       value={confThreshold}
-                      onChange={(e) => setConfThreshold(parseFloat(e.target.value))}
-                      className="w-full accent-slate-800"
+                      onChange={(e) => handleThresholdChange(parseFloat(e.target.value))}
+                      className="w-full accent-slate-800 cursor-pointer"
                     />
                     <div className="flex justify-between text-[9px] text-slate-400">
                       <span>0.00 (High Recall)</span>
@@ -504,26 +627,41 @@ function BoneFracture() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Patient Context Collapsible Button */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Patient: <strong>{patientName}</strong> ({patientAge}y)</span>
+              {/* 3. Patient Demographics & Indication */}
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <User className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Patient Context</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPatientDrawer(!showPatientDrawer)}
-                    className="text-amber-800 hover:text-amber-900 font-semibold text-[11px] flex items-center gap-1 underline"
+                    className="text-amber-800 hover:text-amber-900 font-semibold text-[11px] flex items-center gap-1"
                   >
-                    <span>{showPatientDrawer ? 'Hide Patient Details' : 'Edit Patient Details'}</span>
+                    <span>{showPatientDrawer ? 'Collapse' : 'Edit'}</span>
                     {showPatientDrawer ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   </button>
                 </div>
 
-                {/* Collapsible Patient Details */}
+                <div className="text-xs space-y-1 pt-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Patient:</span>
+                    <span className="font-semibold text-slate-800">{patientName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Age / Exam:</span>
+                    <span className="font-semibold text-slate-800">{patientAge} yrs • {modality}</span>
+                  </div>
+                  <div className="pt-1 text-[11px] text-slate-600 line-clamp-2">
+                    {clinicalNotes}
+                  </div>
+                </div>
+
                 {showPatientDrawer && (
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs animate-in fade-in">
+                  <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-[10px] font-semibold text-slate-500 block">Name</label>
@@ -545,15 +683,6 @@ function BoneFracture() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-slate-500 block">Modality</label>
-                      <input
-                        type="text"
-                        value={modality}
-                        onChange={(e) => setModality(e.target.value)}
-                        className="w-full p-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-                      />
-                    </div>
-                    <div>
                       <label className="text-[10px] font-semibold text-slate-500 block">Clinical Indication</label>
                       <input
                         type="text"
@@ -565,302 +694,283 @@ function BoneFracture() {
                   </div>
                 )}
               </div>
-
-              {/* Right Box (Col 7): Benchmark Radiographs (Horizontal Grid) */}
-              <div className="lg:col-span-7 bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                      Benchmark Radiographs (1-Click Presets)
-                    </h3>
-                  </div>
-                  <label className="cursor-pointer px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold transition flex items-center gap-1.5">
-                    <Upload className="w-3 h-3 text-amber-400" />
-                    <span>Upload Custom X-Ray</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCustomUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {/* 7 Cases Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5 pt-1">
-                  {BENCHMARK_CASES.map((item) => {
-                    const isSelected = selectedCase?.id === item.id && !isCustomUpload;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => loadPresetBlob(item)}
-                        className={`p-1.5 rounded-xl text-center border transition flex flex-col items-center justify-center gap-1 group ${
-                          isSelected
-                            ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
-                            : 'border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-white text-slate-800'
-                        }`}
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-black overflow-hidden border border-slate-300/60 shrink-0">
-                          <img
-                            src={item.file}
-                            alt={item.label}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <span className={`text-[10px] font-bold truncate max-w-full block leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                          {item.id.toUpperCase()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
 
-            {/* ── 2. Visual Inspection Workspace: Side-by-Side Images & Execution ── */}
-            <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4">
-              {error && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {/* Side-by-Side Images (Compact h-64 to h-72 so everything fits on screen) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Left: Input Radiograph */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-                    <span className="flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
-                      <span>1. Ingested Skeletal Radiograph</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">Original Scan</span>
+            {/* ══════════════════════════════════════════════════════════════════ */}
+            {/* ── RIGHT MAIN WORKSPACE: Visual Console & Detection Fit ──────── */}
+            {/* ══════════════════════════════════════════════════════════════════ */}
+            <div className="flex-1 min-w-0 space-y-4 w-full">
+              {/* Active Radiograph Banner */}
+              <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center font-bold">
+                    <Bone className="w-5 h-5 text-amber-700" />
                   </div>
-
-                  <div className="h-64 sm:h-72 rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
-                    {previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt="Input Radiograph"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center text-slate-400 text-xs">
-                        <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50" />
-                        <span>No radiograph loaded</span>
-                      </div>
-                    )}
-                    <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded bg-black/70 text-[10px] text-slate-300 font-mono">
-                      {isCustomUpload ? 'Custom Upload' : selectedCase?.label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right: Detected Overlay */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span>2. Computer Vision Detection Overlay</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {result ? `${result.model_used} • Conf: ${result.confidence}%` : 'Awaiting Execution'}
-                    </span>
-                  </div>
-
-                  <div className="h-64 sm:h-72 rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
-                    {result?.detected_image ? (
-                      <img
-                        src={result.detected_image}
-                        alt="Detected Fracture Localization"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center text-slate-500 text-xs space-y-2 p-4">
-                        <div className="w-10 h-10 rounded-xl bg-slate-800 text-amber-400 flex items-center justify-center mx-auto">
-                          <Sparkles className="w-5 h-5" />
-                        </div>
-                        <p className="font-semibold text-slate-400">Detection Awaiting Execution</p>
-                        <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                          Click below to execute YOLOv8 / Faster R-CNN / SSD inference and render real-time bounding box.
-                        </p>
-                      </div>
-                    )}
-                    {result && (
-                      <span className={`absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                        result.has_fracture ? 'bg-amber-500 text-black' : 'bg-emerald-600 text-white'
-                      }`}>
-                        {result.has_fracture ? 'FRACTURE DETECTED' : 'NORMAL'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Execution Action Button */}
-              <button
-                type="button"
-                onClick={handleExecuteInference}
-                disabled={loading || !selectedFile}
-                className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-md ${
-                  loading || !selectedFile
-                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-[0.99] border border-slate-700'
-                }`}
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-                    <span>Running {selectedModel} Fracture Detection Pipeline...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>Execute Computer Vision Inference ({selectedModel})</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* ── 3. Diagnostic Results & Metrics (Immediately Visible When Executed) ── */}
-            {result && (
-              <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4 animate-fade-in">
-                {/* Result Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Radiologic Impression
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                          result.has_fracture
-                            ? 'bg-amber-50 text-amber-800 border-amber-300'
-                            : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                        }`}
-                      >
-                        {result.has_fracture ? '⚠️ Acute Fracture Detected' : '✓ No Acute Fracture Detected'}
-                      </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold">
-                        {result.class_label.toUpperCase()}
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-extrabold text-slate-900">
+                        {isCustomUpload ? 'Custom Radiograph Ingestion' : selectedCase?.label}
+                      </h2>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
+                        {isCustomUpload ? 'CUSTOM' : selectedCase?.region}
                       </span>
                     </div>
-                    <h3 className="text-xl font-extrabold text-slate-900">
-                      {result.diagnosis}
-                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Patient: <span className="font-semibold text-slate-700">{patientName}</span> ({patientAge}y) • {modality}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExecuteInference}
+                    disabled={loading || (!selectedFile && !previewUrl)}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-xs ${
+                      loading
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-95'
+                    }`}
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span>{loading ? 'Processing CV...' : `Execute Inference (${selectedModel})`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => switchTab('report')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="hidden sm:inline">Radiology Report</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Side-by-Side Dual Visual Console (No gaps, fits perfectly) */}
+              <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
+                {error && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Pane 1: Original Ingested Radiograph */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                      <span className="flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                        <span>1. Ingested Skeletal Radiograph</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">Original Scan</span>
+                    </div>
+
+                    <div className="h-72 sm:h-80 md:h-96 rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt="Input Radiograph"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center text-slate-400 text-xs">
+                          <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50" />
+                          <span>No radiograph loaded</span>
+                        </div>
+                      )}
+                      <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded bg-black/75 text-[10px] text-slate-300 font-mono border border-white/10">
+                        {isCustomUpload ? 'Custom Upload' : selectedCase?.label}
+                      </span>
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded bg-black/75 text-[10px] text-slate-300 font-mono border border-white/10">
+                        Anatomy: {isCustomUpload ? 'Skeletal' : selectedCase?.region}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  {/* Pane 2: Computer Vision Detection Overlay */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>2. Computer Vision Detection Overlay</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {result ? `${result.model_used} • Conf: ${result.confidence}%` : 'Detection Active'}
+                      </span>
+                    </div>
+
+                    <div className="h-72 sm:h-80 md:h-96 rounded-2xl bg-black border border-slate-300 overflow-hidden flex items-center justify-center p-2 relative shadow-inner">
+                      {result?.detected_image ? (
+                        <img
+                          src={result.detected_image}
+                          alt="Detected Fracture Localization"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center text-slate-500 text-xs space-y-2 p-4">
+                          <RefreshCw className="w-6 h-6 animate-spin text-amber-400 mx-auto" />
+                          <p className="font-semibold text-slate-400">Rendering Computer Vision Overlay...</p>
+                        </div>
+                      )}
+                      {result && (
+                        <span className={`absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded text-[10px] font-mono font-bold shadow-md ${
+                          result.has_fracture ? 'bg-amber-500 text-black' : 'bg-emerald-600 text-white'
+                        }`}>
+                          {result.has_fracture ? '⚠️ FRACTURE LOCALIZED' : '✓ CORTEX INTACT'}
+                        </span>
+                      )}
+                      {result?.bounding_box && (
+                        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/75 text-[10px] text-amber-300 font-mono border border-white/10">
+                          Box: {result.bounding_box.width}×{result.bounding_box.height}px
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Complete Diagnostic Results & Metrics (Edge-to-Edge Seamless Fit) */}
+              {result && (
+                <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4 animate-fade-in">
+                  {/* Result Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Radiologic Impression
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            result.has_fracture
+                              ? 'bg-amber-50 text-amber-800 border-amber-300'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          }`}
+                        >
+                          {result.has_fracture ? '⚠️ Acute Cortical Fracture Detected' : '✓ No Acute Fracture Detected'}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold">
+                          {result.class_label.toUpperCase()}
+                        </span>
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-extrabold text-slate-900">
+                        {result.diagnosis}
+                      </h3>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => switchTab('report')}
-                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
+                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs self-start sm:self-auto"
                     >
                       <FileText className="w-3.5 h-3.5 text-amber-400" />
                       <span>View Full Radiology Report</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
-                </div>
 
-                {/* Metrics Grid: Confidence Meter, Bounding Box Coordinates, and Multi-Class Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Metric 1: Confidence Meter */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <div className="flex justify-between items-center text-xs font-semibold">
-                      <span className="text-slate-600">Detection Confidence</span>
-                      <span className="text-slate-900 font-mono font-bold text-sm">
-                        {result.confidence.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-700"
-                        style={{ width: `${Math.min(result.confidence, 100)}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-slate-500 block">
-                      Threshold: {result.threshold.toFixed(2)} (Score exceeds threshold)
-                    </span>
-                  </div>
-
-                  {/* Metric 2: Bounding Box Coordinates */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
-                    <span className="font-bold text-slate-700 block uppercase tracking-wider text-[10px]">
-                      Bounding Box Coordinates
-                    </span>
-                    {result.bounding_box ? (
-                      <div className="grid grid-cols-2 gap-1.5 text-xs font-mono pt-1">
-                        <div className="bg-white p-1.5 rounded-lg border border-slate-200">
-                          <span className="text-slate-400 block text-[9px]">Xmin, Ymin:</span>
-                          <span className="font-bold text-slate-800 text-[11px]">
-                            [{result.bounding_box.xmin}, {result.bounding_box.ymin}]
-                          </span>
-                        </div>
-                        <div className="bg-white p-1.5 rounded-lg border border-slate-200">
-                          <span className="text-slate-400 block text-[9px]">Xmax, Ymax:</span>
-                          <span className="font-bold text-slate-800 text-[11px]">
-                            [{result.bounding_box.xmax}, {result.bounding_box.ymax}]
-                          </span>
-                        </div>
-                        <div className="col-span-2 bg-white p-1 rounded-lg border border-slate-200 text-center text-[10px] font-semibold text-slate-600">
-                          Box: {result.bounding_box.width}px × {result.bounding_box.height}px
-                        </div>
+                  {/* 3 Metrics Grid: Confidence Meter, Bounding Box Coordinates, and Multi-Class Breakdown */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Metric 1: Confidence Meter */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="flex justify-between items-center text-xs font-semibold">
+                        <span className="text-slate-600">Detection Confidence</span>
+                        <span className="text-slate-900 font-mono font-bold text-sm">
+                          {result.confidence.toFixed(1)}%
+                        </span>
                       </div>
-                    ) : (
-                      <p className="text-slate-500 italic py-2 text-[11px]">
-                        No bounding box generated (Intact bone structure).
-                      </p>
-                    )}
-                  </div>
+                      <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-700"
+                          style={{ width: `${Math.min(result.confidence, 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] text-slate-500">
+                        <span>Threshold: {result.threshold.toFixed(2)}</span>
+                        <span className="font-bold text-emerald-700">Exceeds Criterion</span>
+                      </div>
+                    </div>
 
-                  {/* Metric 3: Anatomical Localization Guidance */}
-                  <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-1 text-xs">
-                    <span className="font-bold text-amber-900 block uppercase tracking-wider text-[10px]">
-                      Clinical Orthopedic Protocol
-                    </span>
-                    <p className="text-[11px] font-semibold text-slate-800">
-                      Region: <span className="font-normal text-slate-600">{result.clinical_details?.anatomical_region}</span>
-                    </p>
-                    <p className="text-[11px] font-semibold text-slate-800">
-                      Urgency: <span className="font-bold text-amber-800">{result.clinical_details?.urgency}</span>
-                    </p>
-                    <p className="text-[10px] text-slate-600 leading-tight pt-1">
-                      {result.clinical_details?.management?.[0] || 'Rigid anatomic splinting / backslab immobilization recommended.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 7-Class Probability Distribution Breakdown */}
-                {result.predictions && (
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                      7-Class Kaggle Multi-Class Probability Distribution
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                      {Object.entries(result.predictions).map(([cls, prob]) => {
-                        const isTop = cls === result.class_label;
-                        return (
-                          <div key={cls} className={`p-2 rounded-xl border text-center transition ${
-                            isTop ? 'bg-slate-900 text-white border-slate-900 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
-                          }`}>
-                            <span className={`block text-[10px] font-bold truncate capitalize ${isTop ? 'text-amber-400' : 'text-slate-700'}`}>
-                              {cls}
-                            </span>
-                            <span className="text-xs font-mono font-extrabold block mt-0.5">
-                              {prob}%
+                    {/* Metric 2: Bounding Box Coordinates */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
+                      <span className="font-bold text-slate-700 block uppercase tracking-wider text-[10px]">
+                        Bounding Box Coordinates
+                      </span>
+                      {result.bounding_box ? (
+                        <div className="grid grid-cols-2 gap-1.5 text-xs font-mono pt-1">
+                          <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                            <span className="text-slate-400 block text-[9px]">Xmin, Ymin:</span>
+                            <span className="font-bold text-slate-800 text-[11px]">
+                              [{result.bounding_box.xmin}, {result.bounding_box.ymin}]
                             </span>
                           </div>
-                        );
-                      })}
+                          <div className="bg-white p-1.5 rounded-lg border border-slate-200">
+                            <span className="text-slate-400 block text-[9px]">Xmax, Ymax:</span>
+                            <span className="font-bold text-slate-800 text-[11px]">
+                              [{result.bounding_box.xmax}, {result.bounding_box.ymax}]
+                            </span>
+                          </div>
+                          <div className="col-span-2 bg-white p-1 rounded-lg border border-slate-200 text-center text-[10px] font-semibold text-slate-600">
+                            Box Size: {result.bounding_box.width}px × {result.bounding_box.height}px
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 italic py-2 text-[11px]">
+                          No bounding box generated (Intact bone structure).
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Metric 3: Anatomical Localization Guidance */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-1 text-xs">
+                      <span className="font-bold text-amber-900 block uppercase tracking-wider text-[10px]">
+                        Clinical Orthopedic Protocol
+                      </span>
+                      <p className="text-[11px] font-semibold text-slate-800">
+                        Region: <span className="font-normal text-slate-600">{result.clinical_details?.anatomical_region}</span>
+                      </p>
+                      <p className="text-[11px] font-semibold text-slate-800">
+                        Urgency: <span className="font-bold text-amber-800">{result.clinical_details?.urgency}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-600 leading-tight pt-1">
+                        {result.clinical_details?.management?.[0] || 'Rigid anatomic splinting / backslab immobilization recommended.'}
+                      </p>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* 7-Class Kaggle Multi-Class Probability Distribution Breakdown */}
+                  {result.predictions && (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                        7-Class Kaggle Multi-Class Probability Distribution
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                        {Object.entries(result.predictions).map(([cls, prob]) => {
+                          const isTop = cls === result.class_label;
+                          return (
+                            <div key={cls} className={`p-2 rounded-xl border text-center transition ${
+                              isTop ? 'bg-slate-900 text-white border-slate-900 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
+                            }`}>
+                              <span className={`block text-[10px] font-bold truncate capitalize ${isTop ? 'text-amber-400' : 'text-slate-700'}`}>
+                                {cls}
+                              </span>
+                              <span className="text-xs font-mono font-extrabold block mt-0.5">
+                                {prob}%
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
