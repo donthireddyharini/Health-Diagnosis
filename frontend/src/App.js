@@ -89,13 +89,22 @@ function App() {
             path="/chat" 
             element={<Navigate to="/" replace />} 
           />
-          <Route path="/brain-disease" element={<BrainDisease />} />
+          <Route 
+            path="/brain-disease" 
+            element={user ? <BrainDisease /> : <Navigate to="/login" replace state={{ from: '/brain-disease' }} />} 
+          />
           <Route path="/brain" element={<Navigate to="/brain-disease" />} />
           <Route path="/brain-cancer" element={<Navigate to="/brain-disease" />} />
-          <Route path="/eye-disease" element={<EyeDisease />} />
+          <Route 
+            path="/eye-disease" 
+            element={user ? <EyeDisease /> : <Navigate to="/login" replace state={{ from: '/eye-disease' }} />} 
+          />
           <Route path="/eye" element={<Navigate to="/eye-disease" />} />
           <Route path="/eye-detection" element={<Navigate to="/eye-disease" />} />
-          <Route path="/bone-fracture" element={<BoneFracture user={user} />} />
+          <Route 
+            path="/bone-fracture" 
+            element={user ? <BoneFracture user={user} /> : <Navigate to="/login" replace state={{ from: '/bone-fracture' }} />} 
+          />
           <Route path="/bone" element={<Navigate to="/bone-fracture" />} />
           <Route path="/fracture" element={<Navigate to="/bone-fracture" />} />
         </Routes>

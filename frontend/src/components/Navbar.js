@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Activity,
@@ -27,6 +27,7 @@ function Navbar({ user, logout }) {
   const boneDropdownRef = useRef(null);
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -97,6 +98,10 @@ function Navbar({ user, logout }) {
             <div className="relative" ref={brainDropdownRef}>
               <button
                 onClick={() => {
+                  if (!user) {
+                    navigate('/login', { state: { from: '/brain-disease' } });
+                    return;
+                  }
                   setBrainDropdownOpen((prev) => !prev);
                   setEyeDropdownOpen(false);
                   setBoneDropdownOpen(false);
@@ -131,7 +136,8 @@ function Navbar({ user, logout }) {
                       return (
                         <Link
                           key={item.name + index}
-                          to={item.path}
+                          to={user ? item.path : "/login"}
+                          state={!user ? { from: item.path } : undefined}
                           onClick={() => setBrainDropdownOpen(false)}
                           className={`flex items-center space-x-3 px-4 py-2.5 text-sm transition-colors ${
                             isActive
@@ -153,6 +159,10 @@ function Navbar({ user, logout }) {
             <div className="relative" ref={eyeDropdownRef}>
               <button
                 onClick={() => {
+                  if (!user) {
+                    navigate('/login', { state: { from: '/eye-disease' } });
+                    return;
+                  }
                   setEyeDropdownOpen((prev) => !prev);
                   setBrainDropdownOpen(false);
                   setBoneDropdownOpen(false);
@@ -187,7 +197,8 @@ function Navbar({ user, logout }) {
                       return (
                         <Link
                           key={item.name + index}
-                          to={item.path}
+                          to={user ? item.path : "/login"}
+                          state={!user ? { from: item.path } : undefined}
                           onClick={() => setEyeDropdownOpen(false)}
                           className={`flex items-center space-x-3 px-4 py-2.5 text-sm transition-colors ${
                             isActive
@@ -209,6 +220,10 @@ function Navbar({ user, logout }) {
             <div className="relative" ref={boneDropdownRef}>
               <button
                 onClick={() => {
+                  if (!user) {
+                    navigate('/login', { state: { from: '/bone-fracture' } });
+                    return;
+                  }
                   setBoneDropdownOpen((prev) => !prev);
                   setBrainDropdownOpen(false);
                   setEyeDropdownOpen(false);
@@ -243,7 +258,8 @@ function Navbar({ user, logout }) {
                       return (
                         <Link
                           key={item.name + index}
-                          to={item.path}
+                          to={user ? item.path : "/login"}
+                          state={!user ? { from: item.path } : undefined}
                           onClick={() => setBoneDropdownOpen(false)}
                           className={`flex items-center space-x-3 px-4 py-2.5 text-sm transition-colors ${
                             isActive

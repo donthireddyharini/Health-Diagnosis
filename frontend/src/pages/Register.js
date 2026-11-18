@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { register as registerApi } from '../api';
 import { Activity, AlertCircle } from 'lucide-react';
 import GoogleAuthButton from '../components/GoogleAuthButton';
@@ -20,10 +20,12 @@ function Register({ login }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
 
   const handleGoogleSuccess = (token, user) => {
     login(token, user);
-    navigate('/');
+    navigate(from, { replace: true });
   };
 
   const handleChange = (e) => {
@@ -54,7 +56,7 @@ function Register({ login }) {
       const { confirmPassword, ...dataToSend } = formData;
       const response = await registerApi(dataToSend);
       login(response.data.access_token, response.data.user);
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {

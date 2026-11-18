@@ -40,7 +40,8 @@ function Home({ user }) {
             {/* Fast Launch CTAs */}
             <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
               <Link
-                to="/brain-disease"
+                to={user ? "/brain-disease" : "/login"}
+                state={!user ? { from: "/brain-disease" } : undefined}
                 className="px-6 py-3.5 rounded-xl bg-[#0D7F82] hover:bg-[#0c7a7d] text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 shadow-lg transition transform hover:scale-[1.02]"
               >
                 <Brain className="w-4 h-4 text-teal-200" />
@@ -49,7 +50,8 @@ function Home({ user }) {
               </Link>
 
               <Link
-                to="/eye-disease"
+                to={user ? "/eye-disease" : "/login"}
+                state={!user ? { from: "/eye-disease" } : undefined}
                 className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 shadow-lg transition transform hover:scale-[1.02]"
               >
                 <Eye className="w-4 h-4 text-indigo-200" />
@@ -58,7 +60,8 @@ function Home({ user }) {
               </Link>
 
               <Link
-                to="/bone-fracture"
+                to={user ? "/bone-fracture" : "/login"}
+                state={!user ? { from: "/bone-fracture" } : undefined}
                 className="px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 border border-slate-700 shadow-lg transition transform hover:scale-[1.02]"
               >
                 <Bone className="w-4 h-4 text-amber-300" />
@@ -69,32 +72,44 @@ function Home({ user }) {
 
             {/* Three Pillar Highlights */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 max-w-3xl mx-auto text-left">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <Link
+                to={user ? "/brain-disease" : "/login"}
+                state={!user ? { from: "/brain-disease" } : undefined}
+                className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-teal-400 transition-all cursor-pointer block group"
+              >
                 <div className="flex items-center gap-2 text-teal-300 text-xs font-bold mb-1">
                   <Brain className="w-4 h-4" />
                   <span>NeuroScan AI</span>
                 </div>
-                <div className="text-xl font-extrabold text-white">EfficientNet-B0</div>
+                <div className="text-xl font-extrabold text-white group-hover:text-teal-300 transition-colors">EfficientNet-B0</div>
                 <p className="text-[11px] text-slate-300 mt-0.5">Glioma, Meningioma, Pituitary, Normal</p>
-              </div>
+              </Link>
 
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <Link
+                to={user ? "/eye-disease" : "/login"}
+                state={!user ? { from: "/eye-disease" } : undefined}
+                className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-indigo-400 transition-all cursor-pointer block group"
+              >
                 <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold mb-1">
                   <Eye className="w-4 h-4" />
                   <span>OphthaScan AI</span>
                 </div>
-                <div className="text-xl font-extrabold text-white">Deep CNN / VGG</div>
+                <div className="text-xl font-extrabold text-white group-hover:text-indigo-300 transition-colors">Deep CNN / VGG</div>
                 <p className="text-[11px] text-slate-300 mt-0.5">Cataract, Glaucoma, Retinopathy</p>
-              </div>
+              </Link>
 
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <Link
+                to={user ? "/bone-fracture" : "/login"}
+                state={!user ? { from: "/bone-fracture" } : undefined}
+                className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-amber-400 transition-all cursor-pointer block group"
+              >
                 <div className="flex items-center gap-2 text-amber-300 text-xs font-bold mb-1">
                   <Bone className="w-4 h-4" />
                   <span>OsteoVision AI</span>
                 </div>
-                <div className="text-xl font-extrabold text-white">YOLOv8 + ResNet</div>
+                <div className="text-xl font-extrabold text-white group-hover:text-amber-300 transition-colors">YOLOv8 + ResNet</div>
                 <p className="text-[11px] text-slate-300 mt-0.5">7 Anatomical Fracture Regions</p>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
@@ -153,7 +168,8 @@ function Home({ user }) {
 
             <div className="pt-6">
               <Link
-                to="/brain-disease"
+                to={user ? "/brain-disease" : "/login"}
+                state={!user ? { from: "/brain-disease" } : undefined}
                 className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-[#0D7F82] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-xs"
               >
                 <span>Launch Brain Oncology</span>
@@ -199,7 +215,8 @@ function Home({ user }) {
 
             <div className="pt-6">
               <Link
-                to="/eye-disease"
+                to={user ? "/eye-disease" : "/login"}
+                state={!user ? { from: "/eye-disease" } : undefined}
                 className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-xs"
               >
                 <span>Launch Retinal Diagnostics</span>
@@ -245,7 +262,8 @@ function Home({ user }) {
 
             <div className="pt-6">
               <Link
-                to="/bone-fracture"
+                to={user ? "/bone-fracture" : "/login"}
+                state={!user ? { from: "/bone-fracture" } : undefined}
                 className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-xs"
               >
                 <span>Launch Bone Fracture CV</span>
@@ -326,9 +344,9 @@ function Home({ user }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-6 text-xs font-semibold text-slate-300">
-              <Link to="/brain-disease" className="hover:text-white transition">Brain Disease</Link>
-              <Link to="/eye-disease" className="hover:text-white transition">Eye Disease</Link>
-              <Link to="/bone-fracture" className="hover:text-white transition">Bone Fracture</Link>
+              <Link to={user ? "/brain-disease" : "/login"} state={!user ? { from: "/brain-disease" } : undefined} className="hover:text-white transition">Brain Disease</Link>
+              <Link to={user ? "/eye-disease" : "/login"} state={!user ? { from: "/eye-disease" } : undefined} className="hover:text-white transition">Eye Disease</Link>
+              <Link to={user ? "/bone-fracture" : "/login"} state={!user ? { from: "/bone-fracture" } : undefined} className="hover:text-white transition">Bone Fracture</Link>
               <Link to="/login" className="hover:text-white transition">Sign In</Link>
               <Link to="/register" className="hover:text-white transition">Register</Link>
             </div>

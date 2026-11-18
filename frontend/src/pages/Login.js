@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login as loginApi } from '../api';
 import { Activity, AlertCircle } from 'lucide-react';
 import GoogleAuthButton from '../components/GoogleAuthButton';
@@ -12,10 +12,12 @@ function Login({ login }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
 
   const handleGoogleSuccess = (token, user) => {
     login(token, user);
-    navigate('/');
+    navigate(from, { replace: true });
   };
 
   const handleChange = (e) => {
@@ -33,7 +35,7 @@ function Login({ login }) {
     try {
       const response = await loginApi(formData);
       login(response.data.access_token, response.data.user);
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {
