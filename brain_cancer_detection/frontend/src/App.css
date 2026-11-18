@@ -1,0 +1,74 @@
+/* NeuroScan AI — Global Styles */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --brand-primary: #7c3aed;
+  --brand-light:   #a855f7;
+  --brand-dark:    #4c1d95;
+  --bg:            #f8f9fc;
+  --surface:       #ffffff;
+  --border:        #e8ecf4;
+  --text-primary:  #1e1b4b;
+  --text-muted:    #64748b;
+  --healthy-bg:    #f0fdf4;
+  --healthy-border:#bbf7d0;
+  --healthy-text:  #166534;
+  --tumor-bg:      #fef2f2;
+  --tumor-border:  #fecaca;
+  --tumor-text:    #991b1b;
+  --shadow-sm:     0 2px 8px rgba(124,58,237,0.06);
+  --shadow-md:     0 8px 32px rgba(124,58,237,0.10);
+  --radius:        16px;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utility ──────────────────────────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+button:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input[type="text"] {
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 3px; }

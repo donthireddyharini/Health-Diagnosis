@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register as registerApi } from '../api';
 import { Activity, AlertCircle } from 'lucide-react';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 function Register({ login }) {
   const [formData, setFormData] = useState({
@@ -19,6 +20,11 @@ function Register({ login }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = (token, user) => {
+    login(token, user);
+    navigate('/');
+  };
 
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -48,7 +54,7 @@ function Register({ login }) {
       const { confirmPassword, ...dataToSend } = formData;
       const response = await registerApi(dataToSend);
       login(response.data.access_token, response.data.user);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
@@ -65,7 +71,7 @@ function Register({ login }) {
               <Activity className="h-12 w-12 text-primary-600" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-            <p className="mt-2 text-gray-600">Join SkinCare AI today</p>
+            <p className="mt-2 text-gray-600">Join Health Diagnosis today</p>
           </div>
 
           {error && (
@@ -74,6 +80,26 @@ function Register({ login }) {
               <span className="text-red-800 text-sm">{error}</span>
             </div>
           )}
+
+          {/* Google Sign Up Option */}
+          <div className="mb-6">
+            <GoogleAuthButton
+              mode="signup"
+              onSuccess={handleGoogleSuccess}
+              onError={(err) => setError(err)}
+            />
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-3 text-gray-500 font-medium">
+                  Or register with email credentials
+                </span>
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">

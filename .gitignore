@@ -36,7 +36,6 @@ instance/
 *.sqlite3
 
 # Models and Data
-models/*.h5
 models/*.pb
 models/variables/
 uploads/*

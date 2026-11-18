@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login as loginApi } from '../api';
 import { Activity, AlertCircle } from 'lucide-react';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 function Login({ login }) {
   const [formData, setFormData] = useState({
@@ -11,6 +12,11 @@ function Login({ login }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = (token, user) => {
+    login(token, user);
+    navigate('/');
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -27,7 +33,7 @@ function Login({ login }) {
     try {
       const response = await loginApi(formData);
       login(response.data.access_token, response.data.user);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {
@@ -53,6 +59,26 @@ function Login({ login }) {
               <span className="text-red-800 text-sm">{error}</span>
             </div>
           )}
+
+          {/* Google Sign In Option */}
+          <div className="mb-6">
+            <GoogleAuthButton
+              mode="signin"
+              onSuccess={handleGoogleSuccess}
+              onError={(err) => setError(err)}
+            />
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-3 text-gray-500 font-medium">
+                  Or continue with username
+                </span>
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

@@ -4,16 +4,11 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Predict from './pages/Predict';
-import History from './pages/History';
-import PredictionDetail from './pages/PredictionDetail';
 import Consultations from './pages/Consultations';
 import ConsultationDetail from './pages/ConsultationDetail';
-import Diseases from './pages/Diseases';
-import DiseaseDetail from './pages/DiseaseDetail';
-import Profile from './pages/Profile';
-import Chat from './pages/Chat';
+import BrainDisease from './pages/BrainDisease';
+import EyeDisease from './pages/EyeDisease';
+import BoneFracture from './pages/BoneFracture';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -58,27 +53,27 @@ function App() {
           <Route path="/" element={<Home user={user} />} />
           <Route 
             path="/login" 
-            element={user ? <Navigate to="/dashboard" /> : <Login login={login} />} 
+            element={user ? <Navigate to="/" /> : <Login login={login} />} 
           />
           <Route 
             path="/register" 
-            element={user ? <Navigate to="/dashboard" /> : <Register login={login} />} 
+            element={user ? <Navigate to="/" /> : <Register login={login} />} 
           />
           <Route 
             path="/dashboard" 
-            element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} 
+            element={<Navigate to="/" replace />} 
           />
           <Route 
             path="/predict" 
-            element={user ? <Predict /> : <Navigate to="/login" />} 
+            element={<Navigate to="/" replace />} 
           />
           <Route 
             path="/history" 
-            element={user ? <History /> : <Navigate to="/login" />} 
+            element={<Navigate to="/" replace />} 
           />
           <Route 
             path="/predictions/:id" 
-            element={user ? <PredictionDetail /> : <Navigate to="/login" />} 
+            element={<Navigate to="/" replace />} 
           />
           <Route 
             path="/consultations" 
@@ -88,16 +83,21 @@ function App() {
             path="/consultations/:id" 
             element={user ? <ConsultationDetail user={user} /> : <Navigate to="/login" />} 
           />
-          <Route path="/diseases" element={<Diseases />} />
-          <Route path="/diseases/:name" element={<DiseaseDetail />} />
+          <Route path="/diseases" element={<Navigate to="/" replace />} />
+          <Route path="/diseases/:name" element={<Navigate to="/" replace />} />
           <Route 
             path="/chat" 
-            element={user ? <Chat /> : <Navigate to="/login" />} 
+            element={<Navigate to="/" replace />} 
           />
-          <Route 
-            path="/profile" 
-            element={user ? <Profile user={user} setUser={setUser} /> : <Navigate to="/login" />} 
-          />
+          <Route path="/brain-disease" element={<BrainDisease />} />
+          <Route path="/brain" element={<Navigate to="/brain-disease" />} />
+          <Route path="/brain-cancer" element={<Navigate to="/brain-disease" />} />
+          <Route path="/eye-disease" element={<EyeDisease />} />
+          <Route path="/eye" element={<Navigate to="/eye-disease" />} />
+          <Route path="/eye-detection" element={<Navigate to="/eye-disease" />} />
+          <Route path="/bone-fracture" element={<BoneFracture user={user} />} />
+          <Route path="/bone" element={<Navigate to="/bone-fracture" />} />
+          <Route path="/fracture" element={<Navigate to="/bone-fracture" />} />
         </Routes>
       </div>
     </Router>

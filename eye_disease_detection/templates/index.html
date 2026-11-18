@@ -1,0 +1,57 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Eye Disease Detection</title>
+
+    <!-- 🔗 Link to your custom CSS file stored in the 'static' folder -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+</head>
+<body>
+
+<!-- 🧠 App Header -->
+<div class="header">Eye Disease Detection Web App</div>
+<div class="spacer"></div>
+
+<!-- 📤 Upload Form: Image file will be sent to Flask backend -->
+<form action="/" method="POST" enctype="multipart/form-data" class="form-glass info-section">
+    <div class="file-upload">
+        <label for="file">Choose Image</label>
+        <input type="file" name="file" id="file" required onchange="displayFileNameAndPreview(this)">
+        <span id="file-name">No file chosen</span>
+
+        <!-- 🖼️ Image preview will be shown below after file is chosen -->
+        <img id="preview-image" src="#" alt="Image Preview"
+             style="display:none; margin-top: 15px; max-width: 300px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+    </div>
+    <button type="submit" id="submit-button">Upload & Predict</button>
+</form>
+
+<!-- 📝 App Description: Brief overview of what the app does -->
+<section class="description stylish-description">
+    <h2>🔬 What This App Does</h2>
+    <p>This AI-powered system analyzes retinal images and detects the following eye conditions using a deep learning
+        model:</p>
+    <ul>
+        <li><strong>👁 Cataract</strong> – Clouding of the eye lens, blurs vision</li>
+        <li><strong>🩸 Diabetic Retinopathy</strong> – Damage to retina from high blood sugar</li>
+        <li><strong>🌫 Glaucoma</strong> – Pressure-induced optic nerve damage</li>
+        <li><strong>✅ Normal</strong> – No signs of disease, healthy retina</li>
+        <li><strong>❓ Unknown</strong> – The model couldn’t confidently match this image to any known disease class</li>
+    </ul>
+</section>
+
+<div class="spacer"></div>
+
+<!-- 📚 Include reusable partials for disease info and model explanation -->
+{% include 'partials/_disease_info.html' %}
+<div class="spacer"></div>
+{% include 'partials/_how_it_works.html' %}
+
+<!-- 📜 Load JavaScript file for image preview and toggle functionality -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+
+</body>
+</html>

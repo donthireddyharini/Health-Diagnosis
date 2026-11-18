@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Prediction Result</title>
+
+    <!-- 🎨 Link to CSS and favicon -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+</head>
+<body>
+
+<div class="header">🧠 Prediction Result</div>
+
+<!-- 🖼️ Result card: Displays uploaded image and prediction outcome -->
+<div class="result-card">
+    <!-- Show the uploaded image preview -->
+    <img src="{{ img_path }}" alt="Uploaded Image" class="preview-image">
+
+    <!-- 🧾 Prediction details -->
+    <div class="prediction-row">
+        <h2 class="result-title">Detected Condition:</h2>
+        <h3 class="predicted-label">{{ result }}</h3>
+    </div>
+
+    <!-- 📈 Confidence percentage of the prediction -->
+    <p style="color: #ccc;">Confidence: {{ '%.2f'|format(confidence) }}%</p>
+
+    <!-- ⚠️ Low confidence warning: If confidence is under 70%, show advice -->
+    {% if confidence < 70 %}
+    <p style="color: #ffc107; font-weight: bold;">
+        ⚠️ The model is not confident about this prediction (<strong>below 70%</strong>).<br>
+        Please try uploading a clearer image or seek medical consultation for accurate diagnosis.
+    </p>
+    {% endif %}
+
+    <!-- ❓ Unknown class message: If model returns 'Unknown' -->
+    {% if result == "Unknown" %}
+    <p style="color: #ff6f00; font-weight: bold;">
+        ❗ This image does not match any known condition the model was trained on.<br>
+        It's recommended to consult an eye care professional for further evaluation.
+    </p>
+    {% endif %}
+</div>
+
+<!-- 📘 Informational section about disease categories and disclaimer -->
+<section class="info-section">
+    <p>This result is generated using a deep convolutional neural network (CNN) trained on thousands of annotated
+        retinal images to classify common eye conditions including:</p>
+    <ul>
+        <li><strong>Cataract</strong> – Clouding of the lens</li>
+        <li><strong>Diabetic Retinopathy</strong> – Retinal blood vessel damage</li>
+        <li><strong>Glaucoma</strong> – Optic nerve pressure damage</li>
+        <li><strong>Normal</strong> – Healthy retinal appearance</li>
+        <li><strong>Unknown</strong> – Image does not resemble known conditions</li>
+    </ul>
+    <p><strong>Note:</strong> This is an AI-based prediction and should not be considered a substitute for medical
+        advice. Please consult an ophthalmologist for an official diagnosis.</p>
+</section>
+
+<!-- 🔄 Try again button to return to home/upload page -->
+<div style="margin-top: 30px;">
+    <a href="/" class="btn-primary">🔄 Try Another Image</a>
+</div>
+
+</body>
+</html>
