@@ -14,8 +14,7 @@ import {
   Layers,
   LogIn,
   UserPlus,
-  LogOut,
-  User
+  LogOut
 } from 'lucide-react';
 
 function Navbar({ user, logout }) {

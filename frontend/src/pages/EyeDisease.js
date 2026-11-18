@@ -4,10 +4,10 @@ import { predictEye, getEyeHealth } from '../api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
-  Eye, Activity, Shield, FileText, Upload, RefreshCw,
-  CheckCircle, AlertTriangle, AlertCircle, X, Cpu, Database,
+  Eye, Activity, FileText, Upload,
+  CheckCircle, AlertTriangle, Cpu, Database,
   Sparkles, Layers, Loader2, FlaskConical, Stethoscope,
-  Printer, Download, ChevronRight, Info, HelpCircle
+  Printer, Download, Info, HelpCircle
 } from 'lucide-react';
 
 const DEMO_CASES = [
@@ -1122,9 +1122,9 @@ export default function EyeDisease() {
 
               {/* Mathematical formulation block */}
               <div className="mt-6 p-4 rounded-xl bg-slate-900 text-white font-mono text-xs space-y-2">
-                <p className="text-slate-400 font-semibold">// Softmax Categorical Output Probability</p>
+                <p className="text-slate-400 font-semibold">{"// Softmax Categorical Output Probability"}</p>
                 <p className="text-emerald-400">P(Class_i | X) = exp(z_i) / Σ exp(z_j) for j in [0..4]</p>
-                <p className="text-slate-400">// Confidence Threshold Safety Gate</p>
+                <p className="text-slate-400">{"// Confidence Threshold Safety Gate"}</p>
                 <p className="text-amber-400">If max(P) &lt; 0.70 -&gt; Flag LOW_CONFIDENCE_WARNING (Second Reader Advisory)</p>
               </div>
             </div>

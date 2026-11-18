@@ -18,6 +18,7 @@ function ConsultationDetail({ user }) {
 
   useEffect(() => {
     loadConsultation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadConsultation = async () => {
@@ -71,7 +72,6 @@ function ConsultationDetail({ user }) {
   }
 
   const isDoctor = user.is_doctor && consultation.doctor?.id === user.id;
-  const isPatient = !user.is_doctor && consultation.patient.id === user.id;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

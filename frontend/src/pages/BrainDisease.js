@@ -112,6 +112,7 @@ export default function BrainDisease() {
     if (!file && !result) {
       loadDemoCase(DEMO_CASES[0]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleTabChange = (newTab) => {
